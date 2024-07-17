@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torchmetrics import Accuracy
 import hydra
 from omegaconf import DictConfig
-#import wandb
+# import wandb
 from termcolor import cprint
 from tqdm import tqdm
 
@@ -13,14 +13,11 @@ from src.datasets_2 import ThingsMEGDataset
 from src.models_1 import BasicConvClassifier
 from src.utils import set_seed
 
-@hydra.main(version_base=None, config_path="configs", config_name="config")
+@hydra.main(version_base=None, config_path="configs", config_name="config_batch128")
 def run(args: DictConfig):
     set_seed(args.seed)
     logdir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
     
-    if args.use_wandb:
-        wandb.init(mode="online", dir=logdir, project="MEG-classification")
-
     # ------------------
     #    Dataloader
     # ------------------
@@ -28,8 +25,10 @@ def run(args: DictConfig):
     
     train_set = ThingsMEGDataset("train", args.data_dir)
     train_loader = torch.utils.data.DataLoader(train_set, shuffle=True, **loader_args)
+    
     val_set = ThingsMEGDataset("val", args.data_dir)
     val_loader = torch.utils.data.DataLoader(val_set, shuffle=False, **loader_args)
+    
     test_set = ThingsMEGDataset("test", args.data_dir)
     test_loader = torch.utils.data.DataLoader(
         test_set, shuffle=False, batch_size=args.batch_size, num_workers=args.num_workers
@@ -88,8 +87,8 @@ def run(args: DictConfig):
 
         print(f"Epoch {epoch+1}/{args.epochs} | train loss: {np.mean(train_loss):.3f} | train acc: {np.mean(train_acc):.3f} | val loss: {np.mean(val_loss):.3f} | val acc: {np.mean(val_acc):.3f}")
         torch.save(model.state_dict(), os.path.join(logdir, "model_last.pt"))
-        if args.use_wandb:
-            wandb.log({"train_loss": np.mean(train_loss), "train_acc": np.mean(train_acc), "val_loss": np.mean(val_loss), "val_acc": np.mean(val_acc)})
+        # if args.use_wandb:
+        #     wandb.log({"train_loss": np.mean(train_loss), "train_acc": np.mean(train_acc), "val_loss": np.mean(val_loss), "val_acc": np.mean(val_acc)})
         
         if np.mean(val_acc) > max_val_acc:
             cprint("New best.", "cyan")
